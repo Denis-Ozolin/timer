@@ -1,6 +1,6 @@
 import { Button } from 'components/Button/Button';
 
-export const TimerControl = ({start, stop, reset}) => {
+export const TimerControls = ({start, stop, reset}) => {
 
   return (
     <div>
