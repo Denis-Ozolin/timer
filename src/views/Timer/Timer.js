@@ -1,141 +1,67 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Observable, Subject } from 'rxjs';
-import {
-  map,
-  buffer,
-  debounceTime,
-  filter,
-  takeUntil,
-} from 'rxjs/operators';
+import { useState, useEffect } from 'react';
 import { Scoreboard } from 'components/Scoreboard/Scoreboard';
-import { TimerControls } from 'components/TimerControls/TimerControls';
+import { TimerControl } from 'components/TimerControl/TimerControl';
 import { TimerBoard } from './Timer.styled';
 
 export const Timer = () => {
   const [time, setTime] = useState(0);
-  const [timerState, setTimerState] = useState('stop');
-
-  const stop$ = useMemo(() => new Subject(), []);
-  const click$ = useMemo(() => new Subject(), []);
-
-  const startTimer = () => {
-    setTimerState('start');
-  };
-
-  const stopTimer = useCallback(() => {
-    setTimerState('stop');
-    setTime(0);
-  }, []);
-
-  const resetTimer = useCallback(() => {
-    setTimerState('reset');
-    setTime(0);
-  }, []);
-
-  const waitTimer = useCallback(() => {
-    click$.next();
-    setTimerState('wait');
-    click$.next();
-  }, [click$]);
+  const [timerOn, setTimerOn] = useState(false);
+  const [clickOn, setClickOn] = useState(false);
+  const [firstClickTime, setFirstClickTime] = useState(0);
+  const [twoClickTime, setTwoClickTime] = useState(0);
 
   useEffect(() => {
-    const doubleClick$ = click$.pipe(
-      buffer(click$.pipe(debounceTime(300))),
-      map((list) => list.length),
-      filter((value) => value >= 2),
-    );
+    let intervalId = null;
 
-    const timer$ = new Observable((observer) => {
-      const intervalId = setInterval(() => {
-        observer.next(setTime(prevTime => prevTime + 1000));
-      }, 1000);
+    if (timerOn) {
+      intervalId = setInterval(() => {
+        setTime(prevTime => prevTime + 1000)
+      }, 1000)
+    }
+    else {
+      clearInterval(intervalId);
+    }
 
-      return () => {
-        clearInterval(intervalId);
-      };
-    });
+    return () => clearInterval(intervalId);
+  }, [timerOn]);
 
-    const subscribtion$ = timer$
-      .pipe(takeUntil(doubleClick$))
-      .pipe(takeUntil(stop$))
-      .subscribe({
-        next: () => {
-          if (timerState === 'reset') {
-            setTime(0);
-            // console.log('start');
-          }
-        },
-      });
+  const startTimer = () => {
+    setTimerOn(true);
+  }
 
-    return (() => {
-      subscribtion$.unsubscribe();
-    });
-  }, [click$, stop$, time, timerState]);
+  const stopTimer = () => {
+    setTimerOn(false);
+    setTime(0);
+  }
+
+  const resetTimer = () => {
+    setTimerOn(true);
+    setTime(0);
+  }
+
+  const waitTimer = (event) => {
+    if (event.currentTarget === event.target) {
+      if (clickOn === false && timerOn === true) {
+        setFirstClickTime(Date.now);
+        setClickOn(true);
+      }
+
+      if (clickOn === true && timerOn === true) {
+        setTwoClickTime(Date.now);
+        setClickOn(false);
+
+        if ((firstClickTime - twoClickTime) <= 300) {
+          setTimerOn(false);
+        } 
+      }
+    }
+    return;
+  }
 
   return (
     <TimerBoard onClick={waitTimer}>
       <Scoreboard time={time}/>
-      <TimerControls start={startTimer} stop={stopTimer} reset={resetTimer}/>
+      <TimerControl start={startTimer} stop={stopTimer} reset={resetTimer}/>
     </TimerBoard>
   )
 }
-
-// import React, { Component } from "react";
-// import { render } from "react-dom";
-// import "./style.css";
-// import { useEffect, useState } from "react";
-// import { interval, Subject } from "rxjs";
-// import { takeUntil } from "rxjs/operators";
- 
-// type Status = "run" | "stop" | "wait";
- 
-// export default function App() {
-//   const [sec, setSec] = useState(0);
-//   const [status, setStatus] = useState<Status>("stop");
- 
-//   useEffect(() => {
-//     const unsubscribe$ = new Subject();
-//     interval(1000)
-//       .pipe(takeUntil(unsubscribe$))
-//       .subscribe(() => {
-//         if (status === "run") {
-//           setSec(val => val + 1000);
-//         }
-//       });
-//     return () => {
-//       unsubscribe$.next();
-//       unsubscribe$.complete();
-//     };
-//   }, [status]);
- 
-//   const start = React.useCallback(() => {
-//     setStatus("run");
-//   }, []);
- 
-//   const stop = React.useCallback(() => {
-//     setStatus("stop");
-//     setSec(0);
-//   }, []);
- 
-//   const reset = React.useCallback(() => {
-//     setSec(0);
-//   }, []);
- 
-//   const wait = React.useCallback(() => {
-//     setStatus("wait");
-//   }, []);
- 
-//   return (
-//     <div>
-//       <span> {new Date(sec).toISOString().slice(11, 19)}</span>
-//       <button className="start-button" onClick={start}>
-//         Start
-//       </button>
-//       <button className="stop-button" onClick={stop}>
-//         Stop
-//       </button>
-//       <button onClick={reset}>Reset</button>
-//       <button onClick={wait}>Wait</button>
-//     </div>
-//   );
-// }
