@@ -8,7 +8,7 @@ export const Timer = () => {
   const [timerOn, setTimerOn] = useState(false);
   const [clickOn, setClickOn] = useState(false);
   const [firstClickTime, setFirstClickTime] = useState(0);
-  const [twoClickTime, setTwoClickTime] = useState(0);
+  const [secondClickTime, setSecondClickTime] = useState(0);
 
   useEffect(() => {
     let intervalId = null;
@@ -47,10 +47,10 @@ export const Timer = () => {
       }
 
       if (clickOn === true && timerOn === true) {
-        setTwoClickTime(Date.now);
+        setSecondClickTime(Date.now);
         setClickOn(false);
 
-        if ((firstClickTime - twoClickTime) <= 300) {
+        if ((firstClickTime - secondClickTime) <= 300) {
           setTimerOn(false);
         } 
       }
